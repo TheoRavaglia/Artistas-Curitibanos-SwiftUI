@@ -1,44 +1,62 @@
 import Foundation
 import Combine
 
-/// ViewModel para gerenciar a lista de obras e lógica de filtragem
+/// ViewModel responsável por gerenciar o estado da galeria e a lógica de busca
 final class GaleriaViewModel: ObservableObject {
-    // Todas as obras carregadas
+    // MARK: - Propriedades Publicadas
+    
+    /// Lista completa de obras de arte
     @Published private(set) var obras: [ObraDeArte] = []
     
-    // Texto de busca digitado pelo usuário
+    /// Texto digitado na barra de busca
     @Published var searchText: String = ""
     
-    // Obras resultantes após aplicação do filtro de busca
+    /// Lista filtrada de obras baseada no texto de busca
     @Published private(set) var filteredObras: [ObraDeArte] = []
+    
+    /// Flag que indica se uma busca está em andamento
+    @Published var isSearching: Bool = false
+    
+    // MARK: - Propriedades Privadas
     
     private var cancellables = Set<AnyCancellable>()
     
+    // MARK: - Inicialização
+    
     init() {
-        // Carrega os dados iniciais do DataManager
+        // Carrega os dados iniciais
         obras = DataManager.obras
-        
-        // Configura o pipeline de busca e filtragem
+        // Configura os observáveis
         setupBindings()
     }
     
-    /// Configura listeners para updates de `searchText` e aplica filtro nas `obras`
+    // MARK: - Configuração dos Bindings
+    
+    /// Configura os observáveis para a barra de busca
     private func setupBindings() {
         $searchText
+            // Ativa flag de busca quando o texto muda
+            .handleEvents(receiveOutput: { [weak self] _ in
+                self?.isSearching = true
+            })
+            // Debounce para evitar buscas muito rápidas
             .debounce(for: .milliseconds(300), scheduler: DispatchQueue.main)
+            // Ignora textos repetidos
             .removeDuplicates()
-            .map { [unowned self] text -> [ObraDeArte] in
-                guard !text.isEmpty else {
-                    // Se não há texto, retorna todas as obras
-                    return self.obras
-                }
-                // Filtra por título ou artista
-                return self.obras.filter { obra in
-                    obra.titulo.localizedCaseInsensitiveContains(text) ||
-                    obra.artista.localizedCaseInsensitiveContains(text)
+            // Aplica o filtro nas obras
+            .map { [unowned self] text in
+                text.isEmpty ? self.obras : self.obras.filter {
+                    $0.titulo.localizedCaseInsensitiveContains(text) ||
+                    $0.artista.localizedCaseInsensitiveContains(text)
                 }
             }
-            .assign(to: \ .filteredObras, on: self)
+            // Desativa flag de busca quando completa
+            .handleEvents(receiveOutput: { [weak self] _ in
+                self?.isSearching = false
+            })
+            // Atualiza a lista filtrada
+            .assign(to: \.filteredObras, on: self)
+            // Armazena a subscription
             .store(in: &cancellables)
     }
 }
