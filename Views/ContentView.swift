@@ -9,52 +9,65 @@ struct ContentView: View {
     ]
     
     var body: some View {
-        NavigationView {
-            VStack {
-                // Barra de pesquisa
-                TextField("Buscar por título ou artista", text: $viewModel.searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                
-                // Grid de obras
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(viewModel.filteredObras) { obra in
-                            NavigationLink(value: obra) {
-                                VStack {
-                                    Image(obra.imagemNome)
-                                        .resizable()
-                                        .aspectRatio(1, contentMode: .fit)
-                                        .frame(maxWidth: .infinity)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    
-                                    Text(obra.titulo)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                    
-                                    Text(obra.artista)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Color.gray.opacity(0.3))
-                                )
-                            }
-                        }
-                    }
-                    .padding(16)
-                }
+        NavigationStack {
+            VStack(spacing: 0) {
+                searchBar
+                obrasGrid
             }
             .navigationTitle("Galeria Curitibana")
-            // Configura o destino da NavigationLink via navigationDestination
             .navigationDestination(for: ObraDeArte.self) { obra in
                 DetalhesObraView(obra: obra)
             }
         }
+    }
+    
+    // MARK: - Subviews
+    
+    private var searchBar: some View {
+        TextField("Buscar por título ou artista", text: $viewModel.searchText)
+            .textFieldStyle(.roundedBorder)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+    }
+    
+    private var obrasGrid: some View {
+        ScrollView {
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(viewModel.filteredObras) { obra in
+                    NavigationLink(value: obra) {
+                        ObraCell(obra: obra)
+                    }
+                }
+            }
+            .padding(16)
+        }
+    }
+}
+
+struct ObraCell: View {
+    let obra: ObraDeArte
+    
+    var body: some View {
+        VStack {
+            Image(obra.imagemNome)
+                .resizable()
+                .aspectRatio(1, contentMode: .fit)
+                .cornerRadius(8)
+            
+            Text(obra.titulo)
+                .font(.headline)
+                .lineLimit(1)
+            
+            Text(obra.artista)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(.gray.opacity(0.3))
+        )
     }
 }
 

@@ -1,6 +1,6 @@
 import Foundation
 
-struct ObraDeArte: Identifiable {
+struct ObraDeArte: Identifiable, Hashable {
     let id: UUID
     let titulo: String
     let artista: String
